@@ -135,13 +135,25 @@ Show: hop timeline, point at the trust-boundary line and the hop with no "from" 
 
 Show: IOC table, flip the defang/refang switch once.
 
-## 10. Checking against threat intel (7:00–7:30)
+## 10. Checking against threat intel — and how those live API calls actually work (7:00–7:30)
 
 > "By default, nothing leaves this machine — outside lookups are off. Demo mode gives you
-> sample results for these four bundled examples, clearly labeled as demo data. With real API
-> keys turned on, it actually queries AbuseIPDB, EmailRep and VirusTotal — but it never makes
-> up a result. If a lookup is off, or fails, it just says so honestly instead of pretending
-> everything's clean."
+> sample results for these four bundled examples, clearly labeled as demo data.
+>
+> With real API keys turned on, this makes genuine, real-time HTTP calls to AbuseIPDB,
+> EmailRep and VirusTotal's actual REST APIs — the same endpoints you'd hit from curl, with my
+> own key attached. And it's strictly read-only: it only ever asks 'does a report already exist
+> for this indicator?' It never uploads a file or submits a URL for scanning, on purpose —
+> submitting a customer's phishing URL to a public scanner can itself tip off the attacker that
+> they were detected. So a result only exists if the indicator was already flagged by someone
+> else's prior submission.
+>
+> Whatever comes back is parsed and shown as-is, not reinterpreted — VirusTotal's real
+> per-engine vote count, AbuseIPDB's real abuse-confidence score and report history. And every
+> non-success response gets mapped to an honest status instead of silently becoming a green
+> checkmark: no key configured shows as disabled, a failed or rate-limited call shows as
+> exactly that — it never makes up a result, and it never lets a failure quietly read as
+> 'clean.'"
 
 Show: the config-status badges, one intel table with the "Demo Fixture" label visible.
 
