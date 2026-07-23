@@ -9,9 +9,11 @@ the scores you see match the numbers in this script exactly.
 ## 1. What problem this solves (0:00–0:45)
 
 > "When a SOC analyst gets a reported phishing email, they read the header by hand — check
-> SPF, DKIM, DMARC, trace how the email traveled, pull out any suspicious IPs or links. It's
-> repetitive, and easy to mess up when you're moving fast. This tool automates that whole
-> process, but it always shows its work — you never just get a score with no explanation."
+> SPF, DKIM and DMARC, the three standards that verify who actually sent an email and whether
+> it's really from who it claims to be. They trace how the email traveled, and pull out any
+> suspicious IPs or links. It's repetitive, and easy to mess up when you're moving fast. This
+> tool automates that whole process, but it always shows its work — you never just get a score
+> with no explanation."
 
 Show: title screen / README.
 
@@ -36,7 +38,14 @@ Show: `docs/EMAIL_AUTHENTICATION.md` identity table, or the identity block on a 
 
 ## 4. SPF, DKIM, DMARC — and what makes this different (2:30–3:30)
 
-> "Most header tools just read the Authentication-Results header the mail server already
+> "Quick names, so these aren't just letters: SPF is Sender Policy Framework — it lists which
+> servers are allowed to send mail for a domain. DKIM is DomainKeys Identified Mail — a
+> cryptographic signature proving the message wasn't altered after it was sent. DMARC is
+> Domain-based Message Authentication, Reporting and Conformance — the policy that says what to
+> do if a message fails those checks, and whether the domain that passed actually matches what
+> the inbox shows as the sender.
+>
+> Most header tools just read the Authentication-Results header the mail server already
 > wrote — and trust it. But that header can be faked, and the spec for it says so outright.
 > This tool doesn't trust it. It goes and re-checks the domain's real SPF record and DMARC
 > policy from DNS itself, live, and shows you what was *claimed* right next to what it
@@ -84,12 +93,13 @@ Show: BEC sample results, open the BEC-001 finding.
 
 Show: hop timeline, point at the trust-boundary line and the hop with no "from" info.
 
-## 9. Pulling out the suspicious stuff (6:30–7:00)
+## 9. Pulling out the suspicious stuff — the IOCs (6:30–7:00)
 
-> "Every IP, domain, link and email address gets pulled out automatically, deduplicated, and
-> defanged by default — so nothing here is an accidentally-clickable live link. Only public
-> IPs ever get checked against outside services — internal and test addresses never leave
-> this machine."
+> "Every IP, domain, link and email address gets pulled out automatically — these are called
+> IOCs, Indicators of Compromise, meaning anything worth checking because it might be tied to
+> an attack. They get deduplicated, and defanged by default — so nothing here is an
+> accidentally-clickable live link. Only public IPs ever get checked against outside services —
+> internal and test addresses never leave this machine."
 
 Show: IOC table, flip the defang/refang switch once.
 
