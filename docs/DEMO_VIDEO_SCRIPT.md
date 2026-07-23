@@ -62,26 +62,51 @@ Show: the auth matrix on a results page, point at the "claimed vs. verified" col
 
 Show: click "Legitimate" sample → Analyze → scroll through the results top to bottom.
 
-## 6. The phishing sample (4:15–5:00)
+## 6. The phishing sample — the actual rules that fire (4:15–5:00)
 
-> "This one uses a lookalike domain — one letter swapped for a digit. DMARC fails, and the
-> Reply-To address points somewhere completely different from the real sender's domain.
-> Score's in the 70s, verdict Likely Phishing. And every single finding explains itself: what
-> the evidence is, why it matters, and — this part matters — what the innocent explanation
-> could be, so the tool doesn't train anyone to panic over something normal."
+> "This one uses a lookalike domain — one letter swapped for a digit. Score's 52, verdict
+> Likely Phishing, and I want to name the specific rules behind that number instead of just
+> waving at 'evidence' — this is the part that shows the tool isn't a black box.
+>
+> IDN-001 fires for +18 — Reply-To points to a different organisation than From. That's the
+> single biggest contributor here: replies on this message don't go back to the sender's own
+> domain, they go somewhere else entirely.
+> RTE-002 fires for +10 — no trust boundary could be established, meaning nothing in the
+> delivery path is corroborated infrastructure, it's all sender-supplied claims.
+> IDN-002 and IDN-003 each fire for +8 — the Return-Path and the Message-ID both point to
+> domains unrelated to the sender's own domain, on top of the Reply-To mismatch. Three
+> different identity fields disagreeing with From, at once, is what pushes this from
+> 'suspicious' into 'phishing.'
+> AUTH-009 fires for +5 — the sender's own domain doesn't even publish a DMARC policy.
+>
+> None of these alone would be a verdict. It's that four separate, independent categories of
+> evidence all point the same direction at the same time — that's what the score is actually
+> measuring."
 
 Show: phishing sample results, open two or three findings to show the full breakdown.
 
-## 7. The tricky one — possible BEC (5:00–5:45)
+## 7. The tricky one — possible BEC, and the rule that exists specifically for it (5:00–5:45)
 
-> "This is the interesting case. Authentication passes cleanly — for real, independently
-> verified. But the reply-to address quietly points somewhere else. This is what a Business
-> Email Compromise attack actually looks like: the attacker's own setup passes every check,
-> so SPF/DKIM/DMARC alone can't catch it. The verdict says 'Possible BEC' — never
-> 'Confirmed.' A header alone can't prove someone's lying about business context — it can
-> only tell you it's worth picking up the phone and checking."
+> "This is the interesting case. Score's 61, verdict Possible BEC — Business Email
+> Compromise. Here, one rule matters more than the rest: BEC-001, worth +28, and it's the
+> single biggest score in the whole rule set for a reason. It fires specifically when
+> authentication passes cleanly — for real, independently verified — but the reply path or
+> sending identity is internally inconsistent. That combination is exactly what a targeted
+> business scam looks like on the wire: the attacker's own setup authenticates correctly,
+> because there's nothing technically wrong with it, so SPF/DKIM/DMARC alone can never catch
+> it. That's precisely why this rule exists as its own named pattern instead of just being
+> folded into the generic identity-mismatch checks.
+>
+> IDN-001 also fires here for +18 — same Reply-To mismatch as the phishing case — plus
+> RTE-002 and AUTH-009 for smaller amounts. But BEC-001 is what actually names the verdict:
+> the results page shows it as the 'matched pattern' — authenticated-but-inconsistent-identity
+> — right next to the score.
+>
+> The verdict says 'Possible' — never 'Confirmed.' A header alone can't prove someone's lying
+> about business context — it can only tell you it's worth picking up the phone and
+> checking."
 
-Show: BEC sample results, open the BEC-001 finding.
+Show: BEC sample results, open the BEC-001 finding, point at "matched pattern" on the verdict card.
 
 ## 8. How the email actually traveled (5:45–6:30)
 
@@ -113,14 +138,30 @@ Show: IOC table, flip the defang/refang switch once.
 
 Show: the config-status badges, one intel table with the "Demo Fixture" label visible.
 
-## 11. How the score actually gets calculated (7:30–8:15)
+## 11. How the score actually gets calculated — the rule catalog (7:30–8:15)
 
-> "The scoring rules live in a plain YAML file, not buried inside Python code — every rule
-> has an ID, a weight, and a required explanation of what an innocent version of this would
-> look like. And the verdict isn't just 'add up the score and check a threshold' — specific
-> evidence patterns get checked first. For example: clean, verified authentication plus one
-> bad threat-intel hit gets toned down to Suspicious instead of escalated, because that
-> combination is usually just shared hosting, not an actual attack."
+> "All 30-plus rules live in one plain YAML file, `app/core/rules/rules.yaml` — not buried
+> inside Python. Every rule has four required parts: a stable ID like AUTH-001 or BEC-001, a
+> point weight, why an analyst should care, and — mandatory, every single rule — the innocent
+> explanation for it. A tool that only tells you what's suspicious and never what's normal
+> trains people to over-escalate.
+>
+> A few worth knowing by name, since they're the ones that actually decide most verdicts:
+> AUTH-001, DMARC failed independently — the single heaviest rule at +35, because it's the
+> one control that ties authentication to the address you actually see. AUTH-010, all three
+> controls pass and align — that one's negative, -18, because clean verified authentication
+> should actually pull the score down, not just fail to add to it. IDN-001, Reply-To pointing
+> to a different organisation than From — the biggest identity-mismatch rule at +18, and it's
+> in three of our four bundled samples. And BEC-001, which we just saw — the highest single
+> weight in the whole file at +28, specifically for the 'authenticates cleanly but identity is
+> inconsistent' pattern.
+>
+> Categories also have a point cap — authentication can contribute at most 45 points total, no
+> matter how many auth rules fire — so one noisy category can't alone pin the score at 100.
+> And the verdict isn't just 'add up the score and check a threshold' — named patterns like
+> BEC-001 get checked as a combination first. For example, clean verified authentication plus
+> one bad threat-intel hit gets toned down toward Suspicious instead of escalated, because that
+> specific combination is usually just shared hosting, not an actual attack."
 
 Show: `app/core/rules/rules.yaml` briefly, then the "why this verdict" text on a results page.
 
