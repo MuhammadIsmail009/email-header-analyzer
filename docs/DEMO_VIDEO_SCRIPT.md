@@ -3,17 +3,24 @@
 Target length: 7–9 minutes. Just read each quote naturally — don't memorize it word for word.
 If you're running long, cut narration, not the parts where you click through the app.
 
-**Before you hit record:** set `DEMO_MODE=true` in `.env` and restart the server. That makes
-the scores you see match the numbers in this script exactly.
+**Before you hit record:** set `DEMO_MODE=true` in `.env` and restart the server. This makes
+threat-intel lookups repeatable, fixture-labeled data instead of live API calls — but SPF/DKIM/
+DMARC verification is still live DNS either way, so the exact scores you see may not match the
+numbers written into this script line-for-line. Narrate the number actually on your screen.
 
 ## 1. What problem this solves (0:00–0:45)
 
 > "When a SOC analyst gets a reported phishing email, they read the header by hand — check
 > SPF, DKIM and DMARC, the three standards that verify who actually sent an email and whether
 > it's really from who it claims to be. They trace how the email traveled, and pull out any
-> suspicious IPs or links. It's repetitive, and easy to mess up when you're moving fast. This
-> tool automates that whole process, but it always shows its work — you never just get a score
-> with no explanation."
+> suspicious IPs or links. It's repetitive, and easy to mess up when you're moving fast.
+>
+> This tool automates that whole process, but it always shows its work — you never just get a
+> score with no explanation. Every finding traces back to a named rule — things like AUTH-001
+> for a failed DMARC check, or BEC-001 for the specific 'authenticates clean but identity looks
+> inconsistent' pattern that catches business email compromise. Over 30 rules total, each one
+> with a stable ID, a point weight, and a required explanation of the innocent reading — so
+> nothing here is a black-box score."
 
 Show: title screen / README.
 
