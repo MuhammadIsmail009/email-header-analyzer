@@ -1,0 +1,48 @@
+# Runtime dependencies.
+#
+# Every dependency below is permissively licensed. There is no GPL or AGPL dependency
+# in this project, which is what allows it to be MIT licensed.
+#
+# Notably rejected: eml-parser (GOVCERT-LU) is the best open Received: parser available,
+# but it is AGPL-3.0 and §13 triggers on serving the work over a network — which is
+# exactly what this application does. The Received: parser here is written from scratch
+# as a result. See docs/REFERENCE_REPOSITORIES.md §7.
+
+# Versions below are pinned to exactly what this project was built and tested
+# against (verified via `pip freeze` against the project's own venv), not guessed
+# from memory — a requirements file that doesn't match the tested application is a
+# correctness problem, not a formality.
+
+# -- Web layer --------------------------------------------------------------
+fastapi==0.139.2             # MIT
+uvicorn[standard]==0.51.0    # BSD-3-Clause
+jinja2==3.1.6                # BSD-3-Clause
+python-multipart==0.0.32     # Apache-2.0   (.eml upload)
+itsdangerous==2.2.0          # BSD-3-Clause (signed CSRF tokens)
+
+# -- Models and settings ----------------------------------------------------
+pydantic==2.13.4             # MIT
+pydantic-settings==2.14.2    # MIT
+
+# -- Parsing and analysis ---------------------------------------------------
+python-dateutil==2.9.0.post0  # Apache-2.0 / BSD  (tolerant RFC 2822 date parsing)
+tldextract==5.3.1              # BSD-3-Clause      (organisational domain via PSL)
+PyYAML==6.0.3                   # MIT               (risk rule definitions)
+
+# -- Independent verification -----------------------------------------------
+# These are what let the tool say "independently verified" instead of merely
+# "recorded". Reimplementing SPF include: recursion with correct void-lookup and
+# permerror semantics, or DKIM canonicalisation, is a multi-week trap.
+dnspython==2.8.0             # ISC
+pyspf==2.0.14                # BSD-ish   (RFC 7208 evaluation, incl. the 10-lookup limit)
+dkimpy==1.1.8                # BSD-ish   (RFC 6376/8301/8463 DKIM, RFC 8617 ARC)
+
+# -- Outbound HTTP and caching ----------------------------------------------
+httpx==0.28.1                # BSD-3-Clause
+cachetools==7.1.4            # MIT
+slowapi==0.1.10              # MIT
+
+# -- PDF export ---------------------------------------------------------------
+# Pure-Python (reportlab-backed) HTML->PDF: no wkhtmltopdf/headless-Chrome/GTK
+# binary dependency, so it installs cleanly cross-platform including Windows.
+xhtml2pdf==0.2.17            # Apache-2.0

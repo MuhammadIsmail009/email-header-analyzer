@@ -1,0 +1,19 @@
+Return-Path: <billing@northwind-bank.example>
+Received: from keys1.northwind-bank.example (mail.northwind-bank.example. [203.0.113.15])
+	by mx.example.org with ESMTPS
+	(version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+	Tue, 21 Oct 2025 23:28:50 -0700 (PDT)
+Received-SPF: pass (mx.example.org: domain of billing@northwind-bank.example
+	designates 203.0.113.15 as permitted sender) client-ip=203.0.113.15;
+Authentication-Results: mx.example.org;
+	spf=pass smtp.mailfrom=billing@northwind-bank.example;
+	dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=northwind-bank.example
+Received: by keys1.northwind-bank.example (PGP Universal, from userid 997)
+	id 14643A91718; Wed, 22 Oct 2025 09:28:49 +0300 (+03)
+From: Northwind Bank Billing <billing@northwind-bank.example>
+To: alice@example.org
+Subject: Your October statement is ready
+Message-Id: <20251022062849.14643A91718@keys1.northwind-bank.example>
+Date: Wed, 22 Oct 2025 09:28:49 +0300 (+03)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8

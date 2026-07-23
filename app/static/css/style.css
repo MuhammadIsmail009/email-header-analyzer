@@ -1,0 +1,252 @@
+/* SOC console aesthetic: dark, dense, monospace for data. Severity is carried by
+   text labels and shape as well as colour — never colour alone. */
+
+:root {
+  --bg: #0b0d10;
+  --surface: #12151a;
+  --surface-raised: #181c22;
+  --border: #262b33;
+  --text: #e7ebf0;
+  --text-muted: #8b95a5;
+  --mono: "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --sans: -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --sev-info: #5b7fa6;
+  --sev-weak: #7a8a5c;
+  --sev-moderate: #b8923a;
+  --sev-strong: #c1622f;
+  --sev-critical: #b8383f;
+
+  --pass: #3a8f5c;
+  --fail: #b8383f;
+  --unknown: #6b7280;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="dark"] { }
+}
+:root[data-theme="light"] {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: #d8dce2;
+  --text: #14181f;
+  --text-muted: #5a6472;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.5;
+}
+
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Everything else sits above the ambient background. */
+.topbar, .page, .page-footer { position: relative; z-index: 1; }
+
+/* Content that will be animated in starts hidden via CSS so there is no flash of
+   fully-visible content before GSAP's from() tweens run on slower connections —
+   animations.js clears this class immediately if JS is unavailable or motion is
+   reduced. */
+.gsap-hidden { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .gsap-hidden { opacity: 1 !important; }
+}
+
+code, .mono, .raw-value, .defanged { font-family: var(--mono); }
+
+a { color: #7db4e8; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.brand { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--text); font-weight: 600; }
+.brand-mark { color: #7db4e8; position: relative; display: inline-block; }
+
+/* A single expanding ring on first paint, like the system just switched on —
+   plays once (animation-fill-mode holds the end state) and never repeats, so it
+   never becomes something an analyst has to wait out on every page navigation. */
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.4em;
+  height: 1.4em;
+  margin: -0.7em 0 0 -0.7em;
+  border-radius: 50%;
+  border: 1.5px solid #7db4e8;
+  opacity: 0;
+  animation: boot-pulse 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) 0.05s 1 both;
+  pointer-events: none;
+}
+@keyframes boot-pulse {
+  0% { transform: scale(0.4); opacity: 0.75; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark::after { animation: none; display: none; }
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.55rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.badge-demo { color: var(--sev-moderate); }
+.badge-offline { color: var(--pass); }
+
+.page { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+.page-footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; }
+
+.intro h1 { margin-bottom: 0.4rem; }
+.lede { color: var(--text-muted); max-width: 60ch; }
+.config-status { list-style: none; padding: 0; display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--text-muted); flex-wrap: wrap; }
+
+.analyze-form { margin-top: 1.5rem; }
+.sample-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; align-items: center; }
+.sample-label { color: var(--text-muted); font-size: 0.85rem; }
+
+.btn {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:hover { border-color: #7db4e8; }
+.btn-primary { background: #2d5a8c; border-color: #2d5a8c; color: white; font-weight: 600; padding: 0.65rem 1.4rem; }
+.btn-clear { color: var(--sev-strong); }
+
+textarea#raw-header {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  resize: vertical;
+}
+
+.upload-row { margin: 0.9rem 0; font-size: 0.85rem; color: var(--text-muted); }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.25rem;
+}
+.panel h2 { margin-top: 0; font-size: 1.05rem; }
+.muted { color: var(--text-muted); font-size: 0.88rem; }
+
+/* Verdict card */
+.verdict-card {
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: var(--surface);
+}
+.severity-likely_legitimate { border-left-color: var(--pass); }
+.severity-suspicious { border-left-color: var(--sev-moderate); }
+.severity-likely_phishing { border-left-color: var(--fail); }
+.severity-possible_bec { border-left-color: var(--sev-strong); }
+.severity-inconclusive { border-left-color: var(--unknown); }
+
+.verdict-head { display: flex; align-items: baseline; gap: 0.9rem; flex-wrap: wrap; }
+.verdict-chip { font-weight: 700; font-size: 1.1rem; }
+.verdict-score { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; }
+.verdict-score-suffix { color: var(--text-muted); }
+.verdict-confidence { color: var(--text-muted); font-size: 0.85rem; margin-left: auto; }
+.verdict-rationale { margin-top: 0.75rem; }
+.strongest-evidence ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+.result-pass, .outcome-verified_pass, .trust-trusted { color: var(--pass); font-weight: 600; }
+.result-fail, .outcome-verified_fail, .trust-untrusted { color: var(--fail); font-weight: 600; }
+.trust-unknown, .outcome-not_possible, .outcome-error { color: var(--text-muted); }
+
+tr.clock-skew { color: var(--sev-moderate); }
+tr.intel-status-demo_fixture td:last-child::after { content: " (fixture)"; color: var(--text-muted); }
+
+/* Hop timeline */
+.hop-timeline { list-style: none; padding: 0; margin: 1rem 0; border-left: 2px solid var(--border); }
+.hop { position: relative; padding: 0.6rem 0 0.6rem 1.5rem; margin-left: -1px; border-left: 2px solid var(--border); }
+.hop-marker { position: absolute; left: -7px; top: 0.75rem; width: 12px; height: 12px; border-radius: 50%; background: var(--surface-raised); border: 2px solid #7db4e8; }
+.hop.trust-boundary .hop-marker { border-color: var(--pass); }
+.hop-line { font-size: 0.9rem; }
+.hop-meta { color: var(--text-muted); font-size: 0.78rem; }
+.hop-warning { color: var(--sev-moderate); font-size: 0.78rem; margin-top: 0.2rem; }
+.boundary-marker { list-style: none; text-align: center; color: var(--pass); font-size: 0.78rem; padding: 0.5rem 0; border-top: 1px dashed var(--pass); border-bottom: 1px dashed var(--pass); margin: 0.5rem 0; }
+
+/* Findings */
+.finding { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 0.5rem; padding: 0.6rem 0.9rem; }
+.finding summary { cursor: pointer; display: flex; gap: 0.75rem; align-items: baseline; list-style: none; }
+.finding summary::-webkit-details-marker { display: none; }
+.finding-id { font-family: var(--mono); font-size: 0.78rem; color: var(--text-muted); }
+.finding-title { font-weight: 600; flex: 1; }
+.finding-strength { font-size: 0.72rem; text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 3px; border: 1px solid currentColor; }
+.finding.severity-informational .finding-strength { color: var(--sev-info); }
+.finding.severity-weak .finding-strength { color: var(--sev-weak); }
+.finding.severity-moderate .finding-strength { color: var(--sev-moderate); }
+.finding.severity-strong .finding-strength { color: var(--sev-strong); }
+.finding.severity-critical .finding-strength { color: var(--sev-critical); }
+.finding-score { font-family: var(--mono); font-size: 0.85rem; }
+.finding-body { margin-top: 0.6rem; font-size: 0.88rem; }
+.finding-body p { margin: 0.3rem 0; }
+
+.export-panel .btn { margin-right: 0.5rem; }
+
+.form-error { border-left: 4px solid var(--fail); color: var(--fail); }
+
+/* Why-this-verdict / evidence citation panel */
+.verdict-explanation { border-left: 3px solid var(--border); }
+.verdict-declaration { font-size: 0.95rem; }
+.verdict-declaration strong { padding: 0.05rem 0.4rem; border-radius: 3px; }
+.verdict-declaration .chip-likely_legitimate { color: var(--pass); }
+.verdict-declaration .chip-suspicious { color: var(--sev-moderate); }
+.verdict-declaration .chip-likely_phishing { color: var(--fail); }
+.verdict-declaration .chip-possible_bec { color: var(--sev-strong); }
+.verdict-declaration .chip-inconclusive { color: var(--unknown); }
+
+.evidence-citations { padding-left: 1.4rem; margin: 0.75rem 0; }
+.evidence-citations li { margin-bottom: 0.6rem; line-height: 1.5; }
+
+.raw-citation-toggle { margin-top: 1rem; font-size: 0.85rem; }
+.raw-citation-toggle summary { cursor: pointer; color: var(--text-muted); }
+.raw-citation-toggle .raw-table { margin-top: 0.6rem; }
+.raw-field-name { color: var(--text-muted); white-space: nowrap; font-family: var(--mono); }
+
+/* Finding body height animation needs a defined starting state that doesn't clip
+   during the GSAP height tween. */
+.finding-body { overflow: hidden; }

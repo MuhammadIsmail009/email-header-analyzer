@@ -1,0 +1,18 @@
+Return-Path: <invoices@partner-vendor.example>
+Received: from mail.partner-vendor.example (mail.partner-vendor.example. [203.0.113.44])
+	by mx.example.org with ESMTPS
+	(version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256);
+	Mon, 20 Oct 2025 08:02:11 -0400 (EDT)
+Received-SPF: pass (mx.example.org: domain of invoices@partner-vendor.example
+	designates 203.0.113.44 as permitted sender) client-ip=203.0.113.44;
+Authentication-Results: mx.example.org;
+	spf=pass smtp.mailfrom=invoices@partner-vendor.example;
+	dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=partner-vendor.example
+From: Partner Vendor Finance Team <invoices@partner-vendor.example>
+Reply-To: accounts@partner-vendor-payments.example
+To: payables@example.org
+Subject: Updated banking details for upcoming invoice
+Message-Id: <20251020120211.9A21@mail.partner-vendor.example>
+Date: Mon, 20 Oct 2025 08:02:11 -0400 (EDT)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8

@@ -1,0 +1,11 @@
+From: Alice <alice@bank.example
+To: bob@example.org
+Subject: Missing closing bracket above, and this line has no colon at all
+Date Wed, 22 Oct 2025 09:28:49 +0300
+Message-ID <no-angle-brackets-here>
+From: Second.From@evil.example
+   orphaned continuation line with no preceding field
+Received: totally malformed with no from or by structure
+Received: from a.example.com (b.example.net [999.999.999.999]) by c.example.org;
+	Wed, 22 Oct 2025 09:28:49 +0300
+X-Weird-Encoding: =?utf-8?B?not-valid-base64!!!?=

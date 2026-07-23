@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Email Header Analyzer{% endblock %}
+{% block content %}
+<section class="intro">
+  <h1>Email Header Analyzer</h1>
+  <p class="lede">
+    Paste a raw email header (or upload an <code>.eml</code>) to reconstruct the
+    delivery path, independently verify SPF/DKIM/DMARC against live DNS, extract
+    indicators, and get an explainable, evidence-backed verdict.
+  </p>
+  <ul class="config-status">
+    <li>Independent DNS verification: <strong>{{ 'on' if verification_enabled else 'off' }}</strong></li>
+    <li>Threat-intel enrichment: <strong>{{ 'on' if enrichment_enabled else 'off' }}</strong></li>
+    <li>Demo mode: <strong>{{ 'on' if demo_mode else 'off' }}</strong></li>
+  </ul>
+</section>
+
+{% if form_error %}
+<section class="panel form-error" role="alert">
+  <p>{{ form_error }}</p>
+</section>
+{% endif %}
+
+<section class="analyze-form">
+  <form method="post" action="/analyze" enctype="multipart/form-data" id="analyze-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="sample-row">
+      <span class="sample-label">Load a sample:</span>
+      <button type="button" class="btn btn-sample" data-sample="legitimate_header.txt">Legitimate</button>
+      <button type="button" class="btn btn-sample" data-sample="phishing_header.txt">Phishing</button>
+      <button type="button" class="btn btn-sample" data-sample="possible_bec_header.txt">Possible BEC</button>
+      <button type="button" class="btn btn-sample" data-sample="malformed_header.txt">Malformed</button>
+      <button type="button" class="btn btn-clear" id="clear-btn">Clear</button>
+    </div>
+
+    <textarea
+      name="raw_header"
+      id="raw-header"
+      rows="18"
+      maxlength="{{ max_header_chars }}"
+      placeholder="Paste the full raw email header here..."
+      spellcheck="false"
+    ></textarea>
+
+    <div class="upload-row">
+      <label for="eml-upload">Or upload a file (.eml / .txt, max {{ max_header_kib }} KiB):</label>
+      <input type="file" id="eml-upload" name="eml_file" accept=".eml,.txt">
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="analyze-btn">Analyze</button>
+  </form>
+</section>
+
+<script src="/static/js/main.js"></script>
+{% endblock %}

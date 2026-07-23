@@ -1,0 +1,40 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Real email headers. Analysts drop genuine artifacts here for local analysis.
+# Nothing in this directory is ever committed: real headers contain recipient
+# addresses, internal hostnames and may carry a TLP marking.
+samples/private/
+*.eml
+!tests/fixtures/**/*.eml
+!samples/*.eml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+build/
+dist/
+
+# Test and tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Agent tooling — not part of the deliverable
+.claude/

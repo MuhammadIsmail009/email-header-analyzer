@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* xhtml2pdf supports a CSS2.1-ish subset only: no flexbox/grid, no CSS variables.
+     Kept deliberately plain — this is a printable evidence record, not the live UI. */
+  @page { size: A4; margin: 2cm 1.6cm; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1c1f24; }
+  h1 { font-size: 16pt; margin: 0 0 2pt 0; }
+  h2 { font-size: 12pt; margin: 16pt 0 4pt 0; border-bottom: 1px solid #ccc; padding-bottom: 2pt; }
+  h3 { font-size: 10.5pt; margin: 8pt 0 2pt 0; }
+  p { margin: 3pt 0; line-height: 1.4; }
+  .muted { color: #6b7280; font-size: 8.5pt; }
+  .meta { color: #4b5563; font-size: 8.5pt; margin-bottom: 10pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt 0; }
+  th, td { border: 1px solid #d8dce2; padding: 4pt 6pt; text-align: left; font-size: 8.5pt; vertical-align: top; word-wrap: break-word; }
+  th { background: #eef1f5; }
+  code { font-family: Courier, monospace; font-size: 8.5pt; }
+
+  .verdict-box { border: 1.5pt solid #444; padding: 8pt 10pt; margin-bottom: 6pt; }
+  .verdict-box.sev-benign, .verdict-box.sev-legitimate { border-color: #3a8f5c; }
+  .verdict-box.sev-suspicious, .verdict-box.sev-possible_bec, .verdict-box.sev-likely_bec { border-color: #b8923a; }
+  .verdict-box.sev-likely_phishing, .verdict-box.sev-malicious { border-color: #b8383f; }
+  .verdict-label { font-size: 13pt; font-weight: bold; }
+  .verdict-score { font-size: 13pt; font-weight: bold; }
+
+  ol.citations { margin: 4pt 0; padding-left: 16pt; }
+  ol.citations li { margin-bottom: 4pt; }
+
+  .finding { border: 1px solid #d8dce2; padding: 6pt 8pt; margin-bottom: 6pt; }
+  .finding-title { font-weight: bold; }
+  .finding-strength { color: #6b7280; font-size: 8pt; }
+
+  .footer-note { margin-top: 14pt; padding-top: 6pt; border-top: 1px solid #d8dce2; color: #6b7280; font-size: 8pt; }
+</style>
+</head>
+<body>
+
+<h1>Email Header Analysis Report</h1>
+<p class="meta">
+  Report ID: {{ report.report_id }} &middot;
+  Generated: {{ report.created_at.isoformat() }} &middot;
+  Enrichment: {{ enrichment_label }} &middot;
+  Independent verification: {{ "yes" if report.verification_performed else "no" }}
+</p>
+
+{% if risk %}
+<div class="verdict-box sev-{{ risk.verdict.value }}">
+  <span class="verdict-label">{{ risk.verdict_label }}</span>
+  &nbsp;&nbsp;<span class="verdict-score">{{ risk.score }}/100</span>
+  &nbsp;&nbsp;<span class="muted">confidence: {{ risk.confidence.value }}</span>
+  <p>{{ risk.verdict_rationale }}</p>
+</div>
+
+<h2>Why this verdict</h2>
+<p>
+  This message is declared <strong>{{ risk.verdict_label }}</strong> on the basis of the following
+  specific evidence
+  {%- if risk.matched_pattern %} (matched pattern: <code>{{ risk.matched_pattern }}</code>){% endif -%}:
+</p>
+{% if risk.headline_citations %}
+<ol class="citations">
+  {% for citation in risk.headline_citations %}
+  {% set title, _, quote = citation.partition(": ") %}
+  <li><strong>{{ title }}</strong> &mdash; {{ quote }}</li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="muted">No single finding was decisive; see the full findings list below.</p>
+{% endif %}
+{% endif %}
+
+{% if report.identities %}
+<h2>Sender identity</h2>
+<table>
+  <thead><tr><th>Field</th><th>Address</th><th>Domain</th></tr></thead>
+  <tbody>
+    {% for id in report.identities %}
+    <tr>
+      <td>{{ id.source_header }}</td>
+      <td>{{ id.display_name and (id.display_name ~ " ") or "" }}{{ id.address or "-" }}</td>
+      <td>{{ id.domain or "-" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if report.identity_comparisons %}
+<h3>Comparisons against From</h3>
+<table>
+  <thead><tr><th>Header</th><th>Result</th><th>Explanation</th></tr></thead>
+  <tbody>
+    {% for cmp in report.identity_comparisons %}
+    <tr><td>{{ cmp.right }}</td><td>{{ cmp.result.value }}</td><td>{{ cmp.explanation }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}
+
+{% if auth %}
+<h2>Authentication matrix</h2>
+<table>
+  <thead><tr><th>Method</th><th>Asserted</th><th>Asserted by</th><th>Trust</th></tr></thead>
+  <tbody>
+    {% for e in auth.evidence %}
+    <tr>
+      <td>{{ e.method.value.upper() }}</td>
+      <td>{{ e.result.value }}</td>
+      <td>{{ e.asserted_by or "unknown" }}</td>
+      <td>{{ e.trust.value }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No recorded authentication evidence.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if report.verification_performed %}
+<h3>Independent verification</h3>
+<table>
+  <thead><tr><th>Method</th><th>Outcome</th><th>Detail</th></tr></thead>
+  <tbody>
+    {% for v in report.verifications %}
+    <tr><td>{{ v.method.value.upper() }}</td><td>{{ v.outcome.value }}</td><td>{{ v.detail }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Independent verification was not performed for this analysis.</p>
+{% endif %}
+{% endif %}
+
+{% if report.iocs %}
+<h2>Indicators of compromise</h2>
+<table>
+  <thead>
+    <tr>
+      <th width="9%">Type</th>
+      <th width="46%">Value (defanged)</th>
+      <th width="30%">Eligible</th>
+      <th width="15%">Occurrences</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in report.iocs %}
+    <tr>
+      <td width="9%">{{ i.ioc_type.value }}</td>
+      <td width="46%" style="word-break: break-all;"><code>{{ i.defanged }}</code></td>
+      <td width="30%">{{ "eligible" if i.enrichment_eligible else (i.ineligibility_reason or "not eligible") }}</td>
+      <td width="15%">{{ i.occurrences }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if report.intel_results %}
+<h2>Threat intelligence</h2>
+<table>
+  <thead>
+    <tr>
+      <th width="15%">Provider</th>
+      <th width="25%">Indicator</th>
+      <th width="15%">Status</th>
+      <th width="45%">Summary</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in report.intel_results %}
+    <tr>
+      <td width="15%">{{ r.provider }}</td>
+      <td width="25%" style="word-break: break-all;"><code>{{ defang(r.ioc, r.ioc_type) }}</code>{% if r.is_demo_fixture %} (demo){% endif %}</td>
+      <td width="15%">{{ r.status.value }}</td>
+      <td width="45%">{{ r.summary }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if risk and risk.findings %}
+<h2>Triggered rules</h2>
+{% for f in risk.findings %}
+<div class="finding">
+  <div><span class="finding-title">{{ f.rule_id }} &mdash; {{ f.title }}</span>
+    &nbsp; <span class="finding-strength">{{ f.evidence_strength.value }} &middot; {{ "%+.0f"|format(f.score_contribution) }}</span></div>
+  <p><strong>Evidence:</strong> {{ f.evidence }}</p>
+  <p><strong>Why it matters:</strong> {{ f.why_it_matters }}</p>
+  <p><strong>Possible legitimate explanation:</strong> {{ f.legitimate_explanation }}</p>
+  <p><strong>Recommended action:</strong> {{ f.recommended_action }}</p>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if report.recommendations %}
+<h2>Analyst recommendations</h2>
+<ol class="citations">
+  {% for r in report.recommendations %}<li>{{ r }}</li>{% endfor %}
+</ol>
+{% endif %}
+
+<p class="footer-note">
+  Header-only analysis. Not a verdict on message content, attachments, or intent.
+  Generated by Email Header Analyzer.
+</p>
+
+</body>
+</html>

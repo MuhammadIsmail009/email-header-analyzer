@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Error {{ status_code }} — Email Header Analyzer{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>{{ status_code }}</h1>
+  <p>{{ message }}</p>
+  {% if request_id %}<p class="muted">Request ID: <code>{{ request_id }}</code></p>{% endif %}
+  <p><a class="btn" href="/">Back to start</a></p>
+</section>
+{% endblock %}

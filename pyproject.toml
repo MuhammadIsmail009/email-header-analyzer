@@ -1,0 +1,37 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["venv", ".venv", "tests/fixtures/dkim_test_key.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = [
+    "E501",  # line length is a soft guideline here; long analyst-facing prose strings
+             # in rules.yaml-adjacent docstrings and messages are not worth wrapping
+    "B008",  # `Depends(...)` as an argument default is the standard, documented
+             # FastAPI dependency-injection idiom throughout this codebase, not a
+             # mutable-default-argument bug.
+    "UP042", # `class Foo(str, Enum)` is kept deliberately instead of `StrEnum`: every
+             # enum in app/core/models.py is a stable, widely-referenced public
+             # contract (Pydantic serialization, template comparisons, test fixtures),
+             # and this is a style preference not worth touching 15+ definitions for.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = []
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/demo_fixtures/*", "tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "\\.\\.\\.",
+]
+fail_under = 80

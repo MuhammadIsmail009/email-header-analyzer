@@ -1,0 +1,450 @@
+# Detection rules.
+#
+# WHY THIS FILE EXISTS, AND WHAT IS DELIBERATELY *NOT* IN IT
+#
+# This file holds every rule's identity, weight and analyst-facing text. The matching
+# *logic* lives in Python, in app/core/rules_impl.py, registered against these IDs.
+#
+# A pure-YAML condition language was considered and rejected. Building a small
+# expression DSL to express "SPF passed but its domain does not share an organisational
+# domain with the header From, and the assertion came from trusted infrastructure"
+# produces something harder to read than the Python it replaces, and impossible to
+# unit-test directly. The split used here keeps the valuable part of
+# detections-as-code — stable IDs, tunable weights, reviewable prose, no logic buried
+# in string literals — without inventing a language.
+#
+# So: an analyst who does not read Python can still audit what every rule claims, what
+# it costs, and what innocent explanation was considered. That is the property that
+# matters.
+#
+# FIELDS
+#   weight        Points contributed. NEGATIVE weights reduce risk.
+#   strength      informational | weak | moderate | strong | critical
+#   category      Groups rules for per-category score capping.
+#   why           Why an analyst should care.
+#   legitimate    The innocent explanation. MANDATORY — most single indicators have one,
+#                 and a tool that reports suspicion without the alternative trains
+#                 analysts to over-escalate.
+#   action        What to do next.
+#
+# HARD CONSTRAINTS, ASSERTED BY TESTS
+#   * No rule may key on country, region, language or nationality. Geographic origin is
+#     a proxy for nationality, not for maliciousness, and is defeated by renting a VPS
+#     in the "right" country. See test_country_never_contributes_to_score.
+#   * No rule may treat an unavailable, disabled, unknown or errored intelligence
+#     lookup as evidence of cleanliness. Not knowing is not good news.
+#   * Category caps exist so one noisy category cannot pin the score at 100.
+
+category_caps:
+  authentication: 45
+  sender_identity: 30
+  domain_alignment: 25
+  mail_route: 20
+  header_anomalies: 15
+  threat_intelligence: 40
+  email_reputation: 20
+  impersonation: 35
+  possible_bec: 30
+
+rules:
+
+  # ---------------------------------------------------------------- authentication
+  - id: AUTH-001
+    title: DMARC failed, verified independently
+    category: authentication
+    strength: critical
+    weight: 35
+    why: >-
+      DMARC is the only one of the three controls that ties authentication to the
+      address the recipient actually sees. An independently verified DMARC failure
+      means either SPF and DKIM both failed, or whichever passed did so for a domain
+      unrelated to the visible From address.
+    legitimate: >-
+      Mailing lists and forwarders routinely break DMARC by rewriting headers or
+      relaying from their own infrastructure. Check for ARC headers, which exist
+      precisely to preserve the original result through a forward.
+    action: >-
+      Treat the From address as unproven. Confirm through a known-good channel before
+      acting on anything the message asks for.
+
+  - id: AUTH-002
+    title: SPF failed, verified independently
+    category: authentication
+    strength: strong
+    weight: 25
+    why: >-
+      We retrieved the sender domain's SPF record and evaluated it ourselves against
+      the IP that actually connected. That IP is not authorised to send for this
+      domain, and the record ends in -all, meaning the domain owner asks receivers to
+      reject it.
+    legitimate: >-
+      Forwarded mail fails SPF by design, because the forwarder connects from its own
+      address while preserving the original envelope sender.
+    action: Check for ARC headers and a forwarding hop before treating this as spoofing.
+
+  - id: AUTH-003
+    title: DKIM signature did not validate
+    category: authentication
+    strength: strong
+    weight: 22
+    why: >-
+      We retrieved the public key from DNS and checked the signature ourselves. It does
+      not validate, so the signed headers are not as the signing domain left them.
+    legitimate: >-
+      Mailing lists that prepend subject tags or append footers invalidate DKIM
+      legitimately. A rotated or withdrawn selector produces the same result.
+    action: Compare against the ARC chain, which records the result before forwarding.
+
+  - id: AUTH-004
+    title: Recorded authentication result came from untrusted infrastructure
+    category: authentication
+    strength: strong
+    weight: 20
+    why: >-
+      RFC 8601 section 7.1 warns that Authentication-Results is forgeable. An attacker
+      can place a header claiming spf=pass dkim=pass dmarc=pass into a message they
+      send themselves. This result was asserted by a host that is not configured
+      trusted infrastructure, so it is the sender's own claim about the sender.
+    legitimate: >-
+      The trusted-receiver configuration may simply be incomplete, or the message may
+      have transited infrastructure that is legitimate but unlisted.
+    action: >-
+      Disregard the asserted result. Rely on the independently verified column instead,
+      and add the receiving host to TRUSTED_RECEIVER_DOMAINS if it is genuinely yours.
+
+  - id: AUTH-005
+    title: No authentication evidence present at all
+    category: authentication
+    strength: moderate
+    weight: 12
+    why: >-
+      No Authentication-Results, ARC-Authentication-Results or Received-SPF header is
+      present, so no receiving system recorded an authentication decision.
+    legitimate: >-
+      Internal mail that never crossed an authenticating gateway, or a header excerpt
+      that was pasted incompletely.
+    action: Obtain the complete original header from the recipient's mailbox.
+
+  - id: AUTH-006
+    title: SPF passed but does not align with the visible From domain
+    category: domain_alignment
+    strength: moderate
+    weight: 15
+    why: >-
+      SPF authenticates the envelope sender, not the From header a recipient reads.
+      A pass here proves only that the sending IP may send for the envelope domain,
+      which is a different domain from the one displayed.
+    legitimate: >-
+      Standard and extremely common for mail relayed through an email service
+      provider, CRM, ticketing system or marketing platform. Alone this means very
+      little; it matters in combination.
+    action: Confirm whether the organisation genuinely uses this sending platform.
+
+  - id: AUTH-007
+    title: DKIM passed but the signing domain does not align with the From domain
+    category: domain_alignment
+    strength: moderate
+    weight: 15
+    why: >-
+      The message carries a valid signature from a domain unrelated to the sender the
+      recipient sees. Cryptographically sound, but it authenticates someone else.
+    legitimate: >-
+      Third-party senders commonly sign with their own domain. If DMARC still passes,
+      SPF is carrying the alignment.
+    action: Check whether any signature aligns; one aligned signature satisfies DMARC.
+
+  - id: AUTH-008
+    title: Independently verified result contradicts the recorded result
+    category: authentication
+    strength: strong
+    weight: 25
+    why: >-
+      What the header claims and what we established from DNS disagree. Either the
+      header was forged, or the DNS records changed after delivery.
+    legitimate: >-
+      Records legitimately change over time. A message analysed long after receipt can
+      show a mismatch simply because the domain has since altered its SPF or rotated a
+      DKIM selector.
+    action: Note the message date against the current record before drawing conclusions.
+
+  - id: AUTH-009
+    title: Sender domain publishes no DMARC policy
+    category: authentication
+    strength: weak
+    weight: 5
+    why: >-
+      Without a DMARC record the domain owner has not asked receivers to reject or
+      quarantine mail that fails alignment, so the domain is comparatively easy to
+      spoof.
+    legitimate: >-
+      Very many legitimate domains still publish no DMARC record. This is a weakness of
+      the domain, not evidence about this particular message.
+    action: If this is your own domain, publishing a DMARC record is the fix.
+
+  - id: AUTH-010
+    title: All three controls passed and aligned, verified independently
+    category: authentication
+    strength: informational
+    weight: -18
+    why: >-
+      SPF, DKIM and DMARC were each verified against live DNS and align with the
+      visible From domain. The message genuinely originated from infrastructure
+      authorised by that domain.
+    legitimate: >-
+      Not applicable — this is a risk-reducing observation. Note it still does not make
+      the message safe: a compromised but genuine mailbox passes all three.
+    action: Continue to assess content and context; authentication is not intent.
+
+  # ---------------------------------------------------------------- identity
+  - id: IDN-001
+    title: Reply-To points to a different organisation than From
+    category: sender_identity
+    strength: moderate
+    weight: 18
+    why: >-
+      Replies would go to an organisation other than the apparent sender. This is the
+      mechanism by which conversation-hijacking and invoice-fraud attacks capture the
+      victim's response.
+    legitimate: >-
+      Ticketing systems, shared mailboxes, mailing lists and no-reply senders that
+      redirect replies to a support address all do this routinely.
+    action: >-
+      Check whether the Reply-To organisation has a genuine relationship with the
+      sender. If the message asks for payment or credentials, verify out of band.
+
+  - id: IDN-002
+    title: Return-Path organisation differs from the From organisation
+    category: sender_identity
+    strength: weak
+    weight: 8
+    why: >-
+      The envelope sender and the displayed sender belong to different organisations,
+      so bounces return somewhere other than the apparent author.
+    legitimate: >-
+      Normal for any mail sent through a service provider — bounce handling belongs to
+      the platform. On its own this means almost nothing.
+    action: Consider only in combination with other identity inconsistencies.
+
+  - id: IDN-003
+    title: Message-ID domain unrelated to the sending infrastructure
+    category: header_anomalies
+    strength: weak
+    weight: 8
+    why: >-
+      The Message-ID is normally generated by the system that first accepted the
+      message. A domain unrelated to both the sender and the route suggests it was
+      composed elsewhere, or copied from another message.
+    legitimate: >-
+      Many clients and platforms generate Message-IDs using their own domain. Also
+      common where mail is composed on one system and relayed by another.
+    action: Compare against other messages known to be genuinely from this sender.
+
+  - id: IDN-004
+    title: Display name contains an email address that differs from the real sender
+    category: impersonation
+    strength: strong
+    weight: 25
+    why: >-
+      The display name has been crafted to read as an address different from the one
+      that will actually receive replies. Most mail clients show only the display
+      name, so the recipient never sees the real address.
+    legitimate: >-
+      Rare. Some automated systems put an address in the display name for readability,
+      but it normally matches the sending address.
+    action: Show the recipient the full address. Verify through a separate channel.
+
+  - id: IDN-005
+    title: Duplicate singleton header present
+    category: header_anomalies
+    strength: moderate
+    weight: 14
+    why: >-
+      RFC 5322 permits at most one From, Date, Subject and Message-ID. Mail clients
+      differ in which duplicate they display, and that divergence has been used to
+      show a recipient one sender while authentication evaluates another.
+    legitimate: >-
+      Badly written bulk-mail software occasionally emits duplicates without malice.
+    action: Inspect both values and determine which the recipient's client displayed.
+
+  # ---------------------------------------------------------------- impersonation
+  - id: IMP-001
+    title: Sender domain closely resembles a protected domain
+    category: impersonation
+    strength: strong
+    weight: 30
+    why: >-
+      The domain is a near-match for a well-known organisation — a character
+      substitution, a homoglyph, or the brand embedded in an unrelated domain. Such
+      domains are registered specifically to be misread at a glance.
+    legitimate: >-
+      Occasionally a genuine business has a name legitimately similar to a larger one.
+      Check the registration date and whether the organisation is actually known to the
+      recipient.
+    action: Treat as impersonation until proven otherwise. Check domain age via WHOIS.
+
+  - id: IMP-002
+    title: Domain uses punycode or mixes writing systems
+    category: impersonation
+    strength: moderate
+    weight: 18
+    why: >-
+      Mixing scripts inside a single label is the classic homograph technique: a
+      Cyrillic character rendered identically to its Latin counterpart produces a
+      domain visually indistinguishable from the real one.
+    legitimate: >-
+      Genuinely internationalised domains use punycode legitimately. Mixed script
+      *within one label*, however, is rare outside deliberate deception.
+    action: Compare the Unicode rendering against the ASCII form shown alongside it.
+
+  # ---------------------------------------------------------------- route
+  - id: RTE-001
+    title: Negative transit time between hops
+    category: mail_route
+    strength: informational
+    weight: 3
+    why: >-
+      A message appears to have arrived at one hop before leaving the previous one.
+    legitimate: >-
+      Almost always clock skew between mail servers — NTP drift or a misconfigured
+      timezone. Very rarely an indicator by itself.
+    action: Note it; do not escalate on this alone.
+
+  - id: RTE-002
+    title: No trust boundary could be established
+    category: mail_route
+    strength: moderate
+    weight: 10
+    why: >-
+      No hop was handled by configured trusted infrastructure, so every Received line
+      is a sender-supplied claim. An attacker can fabricate as many plausible hops as
+      they like, and none of them can be corroborated.
+    legitimate: >-
+      Usually a configuration gap rather than an attack — TRUSTED_RECEIVER_DOMAINS is
+      unset or does not match this mail flow.
+    action: Configure TRUSTED_RECEIVER_DOMAINS with your own mail infrastructure.
+
+  - id: RTE-003
+    title: Connecting IP has no forward-confirmed reverse DNS
+    category: mail_route
+    strength: weak
+    weight: 7
+    why: >-
+      The sending address either has no reverse DNS, or its reverse name does not
+      resolve back to it. Established mail operators normally maintain both.
+    legitimate: >-
+      Shared hosting, small operators and some cloud egress addresses frequently lack
+      forward-confirmed reverse DNS without being malicious.
+    action: Combine with reputation before drawing a conclusion.
+
+  - id: RTE-004
+    title: Delivery hop was not encrypted
+    category: mail_route
+    strength: informational
+    weight: 3
+    why: >-
+      The message was handed over using plain ESMTP rather than ESMTPS, so it crossed
+      that hop unencrypted and was readable in transit.
+    legitimate: >-
+      Some legacy systems still do not offer STARTTLS. This is a confidentiality
+      observation, not an indicator of forgery.
+    action: Note for hygiene reporting.
+
+  # ---------------------------------------------------------------- threat intel
+  - id: TI-001
+    title: Connecting IP is listed on a DNS blocklist
+    category: threat_intelligence
+    strength: strong
+    weight: 25
+    why: >-
+      The address that delivered this message has a recorded history of spam or abuse.
+    legitimate: >-
+      Shared cloud egress addresses and compromised-then-cleaned hosts can remain
+      listed after the underlying problem is resolved. Listings also go stale.
+    action: Check the listing date and whether the address is shared infrastructure.
+
+  - id: TI-002
+    title: Multiple providers independently report the indicator as malicious
+    category: threat_intelligence
+    strength: critical
+    weight: 35
+    why: >-
+      Independent sources agree. Consensus across providers is considerably stronger
+      than any single verdict.
+    legitimate: >-
+      Shared infrastructure can be reported for a neighbouring tenant's behaviour.
+    action: Escalate. Capture the indicator for blocking and hunting.
+
+  - id: TI-003
+    title: A single provider reports the indicator as malicious
+    category: threat_intelligence
+    strength: moderate
+    weight: 15
+    why: >-
+      One source reports this indicator negatively while others do not, or were not
+      consulted.
+    legitimate: >-
+      Single-source verdicts have meaningful false-positive rates, particularly on
+      shared hosting and URL shorteners.
+    action: Seek corroboration before acting.
+
+  - id: TI-004
+    title: Threat intelligence was unavailable or not consulted
+    category: threat_intelligence
+    strength: informational
+    weight: 0
+    why: >-
+      One or more providers were disabled, unkeyed, rate-limited or unreachable, so
+      those indicators were never actually checked.
+    legitimate: >-
+      Expected when running offline or without API keys, which is the default posture.
+    action: >-
+      Do not read this as a clean result. Nothing was learned about these indicators.
+      Re-run with enrichment enabled if third-party lookups are permitted for this case.
+
+  - id: REP-001
+    title: Sender address has a poor or suspicious reputation
+    category: email_reputation
+    strength: moderate
+    weight: 18
+    why: >-
+      The sending address is reported as suspicious, newly created, or associated with
+      malicious activity.
+    legitimate: >-
+      Genuinely new addresses at genuinely new organisations look identical to
+      disposable ones. Reputation services also have limited coverage outside large
+      providers.
+    action: Weigh against whether the recipient expected contact from this sender.
+
+  - id: REP-002
+    title: Sender address has an established positive reputation
+    category: email_reputation
+    strength: informational
+    weight: -10
+    why: >-
+      The address has a long history and no reported malicious activity.
+    legitimate: >-
+      Not applicable — risk-reducing. Note that a long-established address is exactly
+      what an attacker obtains by compromising a real mailbox.
+    action: Reduces suspicion; does not remove the need to verify unusual requests.
+
+  # ---------------------------------------------------------------- possible BEC
+  - id: BEC-001
+    title: Authentication passes but sender identity is internally inconsistent
+    category: possible_bec
+    strength: strong
+    weight: 28
+    why: >-
+      The message authenticates correctly, yet the reply path or sending identity
+      diverges from the apparent author. This is the shape of business email
+      compromise and of impersonation from a lookalike domain: the attacker controls a
+      domain or a mailbox that genuinely authenticates, so authentication alone cannot
+      catch it. It is also precisely the pattern that defeats filters which trust
+      SPF/DKIM/DMARC results on their own.
+    legitimate: >-
+      Executive assistants, shared mailboxes, delegated send-on-behalf and third-party
+      platforms all produce authenticated mail with a divergent reply path.
+    action: >-
+      Verify any payment, banking-detail or credential request through a channel that
+      is not this email thread — a known telephone number, not one supplied in the
+      message. Header evidence cannot confirm business context, so this is a prompt to
+      check, not a conclusion.

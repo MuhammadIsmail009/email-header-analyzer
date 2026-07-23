@@ -1,0 +1,12 @@
+# No database, no queue, no cache server — analysis is a pure function of the
+# submitted header plus in-memory caches, so there is nothing else to run.
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+    restart: unless-stopped

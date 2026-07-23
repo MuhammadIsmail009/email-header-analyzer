@@ -1,0 +1,18 @@
+Return-Path: <bounce@mailer-relay.example.net>
+Received: from unknown (unknown [198.51.100.9])
+	by mx.example.org with SMTP id 7F3A2B1;
+	Thu, 23 Oct 2025 03:14:02 -0700 (PDT)
+Received-SPF: fail (mx.example.org: domain of northw1nd-secure.example does not
+	designate 198.51.100.9 as permitted sender) client-ip=198.51.100.9;
+Authentication-Results: mx.example.org;
+	spf=fail smtp.mailfrom=alerts@northw1nd-secure.example;
+	dmarc=fail (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=northw1nd-secure.example
+From: "Northwind Bank Security" <alerts@northw1nd-secure.example>
+Reply-To: support@secure-verify-alerts.example
+To: alice@northwind-bank.example
+Subject: URGENT: Verify your account within 24 hours
+Message-Id: <a1b2c3d4@relay-host-9.example.net>
+Date: Thu, 23 Oct 2025 03:14:00 -0700 (PDT)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+X-Mailer: BulkSend 2.1

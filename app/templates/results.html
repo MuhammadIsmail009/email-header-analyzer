@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}Analysis Results — Email Header Analyzer{% endblock %}
+{% block content %}
+
+{% set risk = report.risk %}
+{% set auth = report.authentication %}
+{% set route = report.route %}
+
+<section class="verdict-card severity-{{ risk.verdict.value }}" data-animate="verdict">
+  <div class="verdict-head">
+    <span class="verdict-chip chip-{{ risk.verdict.value }}">{{ risk.verdict_label }}</span>
+    <span class="verdict-score" data-count-to="{{ risk.score }}">0</span><span class="verdict-score-suffix">/100</span>
+    <span class="verdict-confidence">confidence: {{ risk.confidence.value }}</span>
+  </div>
+  <p class="verdict-rationale">{{ risk.verdict_rationale }}</p>
+</section>
+
+{% set cited_headers = ["From", "Sender", "Reply-To", "Return-Path", "Message-ID",
+                          "Received-SPF", "Authentication-Results", "DKIM-Signature"] %}
+<section class="panel verdict-explanation" data-animate="explanation">
+  <h2>Why this verdict</h2>
+  <p class="verdict-declaration">
+    This message is declared
+    <strong class="chip-{{ risk.verdict.value }}">{{ risk.verdict_label }}</strong>
+    on the basis of the following specific evidence
+    {%- if risk.matched_pattern %} (matched pattern: <code>{{ risk.matched_pattern }}</code>){% endif -%}:
+  </p>
+
+  {% if risk.headline_citations %}
+  <ol class="evidence-citations">
+    {% for citation in risk.headline_citations %}
+    {% set title, _, quote = citation.partition(": ") %}
+    <li><strong>{{ title }}</strong> — {{ quote }}</li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="muted">No single finding was decisive; see the full findings list below.</p>
+  {% endif %}
+
+  <details class="raw-citation-toggle">
+    <summary>Show the raw header lines this evidence was drawn from</summary>
+    <table class="raw-table">
+      <tbody>
+        {% for name in cited_headers %}
+          {% for field in report.parsed_header.get_all(name) %}
+          <tr>
+            <td class="raw-field-name">{{ field.name }}:</td>
+            <td class="raw-value">{{ field.decoded_value or field.normalized_value }}</td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="panel">
+  <h2>Sender identity</h2>
+  <table class="identity-table">
+    <thead><tr><th>Field</th><th>Address</th><th>Domain</th></tr></thead>
+    <tbody>
+      {% for id in report.identities %}
+      <tr>
+        <td>{{ id.source_header }}</td>
+        <td>{{ id.display_name and (id.display_name ~ " ") or "" }}{{ id.address or "—" }}</td>
+        <td>{{ id.domain or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if report.identity_comparisons %}
+  <h3>Comparisons against From</h3>
+  <ul class="identity-comparisons">
+    {% for cmp in report.identity_comparisons %}
+    <li class="cmp-{{ cmp.result.value }}"><strong>{{ cmp.right }}:</strong> {{ cmp.explanation }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Authentication matrix</h2>
+  <table class="auth-matrix">
+    <thead><tr><th>Method</th><th>Asserted</th><th>Asserted by</th><th>Trust</th></tr></thead>
+    <tbody>
+      {% for e in auth.evidence %}
+      <tr>
+        <td>{{ e.method.value.upper() }}</td>
+        <td class="result-{{ e.result.value }}">{{ e.result.value }}</td>
+        <td>{{ e.asserted_by or "unknown" }}</td>
+        <td class="trust-{{ e.trust.value }}">{{ e.trust.value }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No recorded authentication evidence.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if report.verification_performed %}
+  <h3>Independent verification</h3>
+  <table class="verification-table">
+    <thead><tr><th>Method</th><th>Outcome</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for v in verifications %}
+      <tr>
+        <td>{{ v.method.value.upper() }}</td>
+        <td class="outcome-{{ v.outcome.value }}">{{ v.outcome.value }}</td>
+        <td>{{ v.detail }}{% if v.scope %} <em>({{ v.scope }})</em>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Independent verification was not performed for this analysis. Values above reflect only what the receiving server recorded.</p>
+  {% endif %}
+
+  <ul class="alignment-summary">
+    <li>SPF alignment: <strong>{{ auth.spf_alignment.value }}</strong></li>
+    <li>DKIM alignment: <strong>{{ auth.dkim_alignment.value }}</strong></li>
+    <li>DMARC policy: <strong>{{ auth.dmarc_policy or "not published / unknown" }}</strong></li>
+    <li>ARC present: <strong>{{ "yes" if auth.arc_present else "no" }}</strong>{% if auth.arc_chain_status %} — {{ auth.arc_chain_status }}{% endif %}</li>
+  </ul>
+  {% if auth.warnings %}
+  <ul class="auth-warnings">
+    {% for w in auth.warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+{% if report.vendor_reports %}
+<section class="panel">
+  <h2>Vendor filter reports</h2>
+  {% for vr in report.vendor_reports %}
+  <h3>{{ vr.vendor }} — {{ vr.source_header }}</h3>
+  <table class="vendor-table">
+    <thead><tr><th>Field</th><th>Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+    {% for code, value, meaning in vr.decoded %}
+      <tr><td>{{ code }}</td><td>{{ value }}</td><td>{{ meaning }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% for note in vr.notes %}<p class="muted">{{ note }}</p>{% endfor %}
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="panel" data-animate="timeline">
+  <h2>Mail route</h2>
+  <p class="muted">Oldest hop first (reversed from stored header order — MTAs prepend, so the raw header stores newest first).</p>
+  <p>{{ route.trust_boundary_explanation }}</p>
+  {% if route.total_transit_seconds is not none %}
+  <p>Total transit (positive hops only): {{ "%.1f"|format(route.total_transit_seconds) }}s</p>
+  {% endif %}
+  <ol class="hop-timeline">
+    {% for hop in route.hops_chronological %}
+    <li class="hop {{ 'trust-boundary' if hop.index_in_header == route.first_trusted_hop_index else '' }}">
+      <div class="hop-marker"></div>
+      <div class="hop-body">
+        <div class="hop-line">
+          <strong>{{ hop.by_host or "unknown" }}</strong>
+          {% if hop.from_host %}&larr; {{ hop.from_host }}{% endif %}
+          {% if hop.primary_ip %}<code>[{{ hop.primary_ip }}]</code>{% endif %}
+        </div>
+        <div class="hop-meta">
+          {% if hop.timestamp_utc %}{{ hop.timestamp_utc.strftime("%Y-%m-%d %H:%M:%S UTC") }}{% endif %}
+          {% if hop.protocol %} &middot; {{ hop.protocol }}{% if hop.used_tls %} (TLS){% endif %}{% endif %}
+        </div>
+        {% for w in hop.warnings %}<div class="hop-warning">{{ w }}</div>{% endfor %}
+      </div>
+    </li>
+    {% if route.first_trusted_hop_index is not none and hop.index_in_header == route.first_trusted_hop_index %}
+    <li class="boundary-marker">— trust boundary: everything above is attacker-controllable —</li>
+    {% endif %}
+    {% endfor %}
+  </ol>
+  {% if route.delays %}
+  <table class="delay-table">
+    <thead><tr><th>Between hops</th><th>Delay</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for d in route.delays %}
+      <tr class="{{ 'clock-skew' if d.is_clock_skew else '' }}">
+        <td>{{ d.from_hop_index }} → {{ d.to_hop_index }}</td>
+        <td>{{ "%.1f"|format(d.seconds) }}s</td>
+        <td>{{ d.note or "" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if route.missing_evidence %}
+  <ul class="missing-evidence">
+    {% for m in route.missing_evidence %}<li>{{ m }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Indicators of compromise</h2>
+  <div class="ioc-controls">
+    <label><input type="checkbox" id="refang-toggle"> Show real (refanged) values</label>
+  </div>
+  <table class="ioc-table">
+    <thead><tr><th>Type</th><th>Value</th><th>Eligible</th><th>Occurrences</th></tr></thead>
+    <tbody>
+      {% for ioc in report.iocs %}
+      <tr>
+        <td>{{ ioc.ioc_type.value }}</td>
+        <td><span class="defanged" data-real="{{ ioc.value }}">{{ ioc.defanged }}</span></td>
+        <td>{{ "eligible" if ioc.enrichment_eligible else (ioc.ineligibility_reason or "not eligible") }}</td>
+        <td>{{ ioc.occurrences }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if report.intel_results %}
+<section class="panel">
+  <h2>Threat intelligence</h2>
+  <table class="intel-table">
+    <thead><tr><th>Provider</th><th>Indicator</th><th>Status</th><th>Summary</th></tr></thead>
+    <tbody>
+      {% for r in report.intel_results %}
+      <tr class="intel-status-{{ r.status.value }}">
+        <td>{{ r.provider }}</td>
+        <td>{{ r.ioc }}{% if r.is_demo_fixture %} <span class="badge badge-demo">demo fixture</span>{% endif %}</td>
+        <td>{{ r.status.value }}</td>
+        <td>{{ r.summary }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="panel" data-animate="findings">
+  <h2>Triggered rules</h2>
+  {% for f in risk.findings %}
+  <details class="finding severity-{{ f.evidence_strength.value }}">
+    <summary>
+      <span class="finding-id">{{ f.rule_id }}</span>
+      <span class="finding-title">{{ f.title }}</span>
+      <span class="finding-strength">{{ f.evidence_strength.value }}</span>
+      <span class="finding-score">{{ "%+.0f"|format(f.score_contribution) }}</span>
+    </summary>
+    <div class="finding-body">
+      <p><strong>Evidence:</strong> {{ f.evidence }}</p>
+      <p><strong>Why it matters:</strong> {{ f.why_it_matters }}</p>
+      <p><strong>Possible legitimate explanation:</strong> {{ f.legitimate_explanation }}</p>
+      <p><strong>Recommended action:</strong> {{ f.recommended_action }}</p>
+    </div>
+  </details>
+  {% else %}
+  <p class="muted">No rules were triggered.</p>
+  {% endfor %}
+</section>
+
+{% if risk.missing_evidence %}
+<section class="panel">
+  <h2>Missing evidence</h2>
+  <ul>{% for m in risk.missing_evidence %}<li>{{ m }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>Analyst recommendations</h2>
+  <ol>{% for r in report.recommendations %}<li>{{ r }}</li>{% endfor %}</ol>
+</section>
+
+<section class="panel">
+  <h2>Raw parsed headers</h2>
+  <table class="raw-table">
+    <thead><tr><th>#</th><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      {% for field in report.parsed_header.fields %}
+      <tr>
+        <td>{{ field.order }}</td>
+        <td>{{ field.name }}</td>
+        <td class="raw-value">{{ field.decoded_value or field.normalized_value }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if report.parsed_header.warnings %}
+  <ul class="parse-warnings">
+    {% for w in report.parsed_header.warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section class="panel export-panel">
+  <h2>Export</h2>
+  <a class="btn" href="/reports/{{ report.report_id }}.json">Download JSON</a>
+  <a class="btn" href="/reports/{{ report.report_id }}.md">Download Markdown</a>
+  <a class="btn" href="/reports/{{ report.report_id }}.pdf">Download PDF</a>
+  <p class="muted">Enrichment mode for this analysis: <strong>{{ report.enrichment_mode.value }}</strong></p>
+</section>
+
+<script src="/static/js/results.js"></script>
+{% endblock %}

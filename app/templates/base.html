@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Email Header Analyzer{% endblock %}</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark">&#9670;</span>
+    <span class="brand-text">Email Header Analyzer</span>
+  </a>
+  <nav class="topbar-meta">
+    {% if demo_mode %}
+    <span class="badge badge-demo" title="Serving deterministic fixture data for the bundled samples only">DEMO MODE</span>
+    {% endif %}
+    {% if not enrichment_enabled %}
+    <span class="badge badge-offline" title="No indicator is sent to any third party">OFFLINE — nothing leaves this machine</span>
+    {% endif %}
+  </nav>
+</header>
+<main class="page">
+{% block content %}{% endblock %}
+</main>
+<footer class="page-footer">
+  <span>Header-only analysis. Not a verdict on message content, attachments, or intent.</span>
+</footer>
+<script src="/static/js/vendor/gsap.min.js"></script>
+<script src="/static/js/vendor/ScrollTrigger.min.js"></script>
+<script src="/static/js/background.js"></script>
+<script src="/static/js/animations.js"></script>
+</body>
+</html>
