@@ -5,7 +5,8 @@ and this file is a bug — two of the reference projects reviewed shipped docume
 contradicted their own source, and anyone auditing them from their docs would have been
 wrong. See `docs/REFERENCE_REPOSITORIES.md` §6, weakness 1.
 
-**Last updated:** 2026-07-23 — analysis core complete (132 tests green). Handoff to Sonnet 5 high, see bottom.
+**Last updated:** 2026-07-23 — all phases complete, 253 tests green, pushed to GitHub. See
+"Phase 7 (GSAP motion) — actually complete" at the bottom for the final animation fix.
 
 ---
 
@@ -14,16 +15,16 @@ wrong. See `docs/REFERENCE_REPOSITORIES.md` §6, weakness 1.
 | Phase | State | Notes |
 |---|---|---|
 | 0 — Inspect, audit, plan | ✅ Complete | Licence audit of 8 projects; plan and deviations recorded |
-| 1 — Core scaffold | 🟡 Partial | Models, settings, deps verified. Still to do: `main.py`, routes, templates, Docker |
+| 1 — Core scaffold | ✅ Complete | `main.py`, routes, templates, Docker — see "Phase 1 (routes, security, Docker)" below |
 | 2 — Parsers | ✅ Complete | Header, Received and authentication parsers + trust marking |
-| 3 — IOC, domain, identity | 🟡 Partial | `domain_analyzer` + `addresses` done. Still to do: `ioc_extractor`, `identity_analyzer`, `vendor_headers` |
+| 3 — IOC, domain, identity | ✅ Complete | `ioc_extractor`, `identity_analyzer`, `vendor_headers` — see "Phase 3" below |
 | 4 — Live verification | ✅ Complete | SPF/DKIM/DMARC/DNSBL/FCrDNS, fully offline-testable |
-| 5 — Threat-intel providers | ⬜ Not started | |
+| 5 — Threat-intel providers | ✅ Complete | AbuseIPDB, EmailRep, VirusTotal — see "Phase 5" below |
 | 6 — Risk engine and verdict | ✅ Complete | 28 YAML rules, correlate-don't-override verdict |
-| 7 — Interface | ⬜ Not started | |
-| 8 — Security and quality | ⬜ Not started | |
-| 9 — Deliverables | ⬜ Not started | |
-| 10 — Final audit | ⬜ Not started | |
+| 7 — Interface | ✅ Complete | Templates, CSS, GSAP motion — see "Phase 7 (GSAP motion) — actually complete" below |
+| 8 — Security and quality | ✅ Complete | Ruff clean, 90.48% coverage — see "Phase 8" below |
+| 9 — Deliverables | ✅ Complete | README, docs, whitepaper, CI, samples — see "Phase 9" below |
+| 10 — Final audit | ✅ Complete | Repo split from personal/customer-data folder, pushed to GitHub 2026-07-23 |
 
 ---
 
@@ -528,3 +529,68 @@ all changes.**
 
 **Remaining: Phase 7 GSAP motion polish (functional but unstyled with animation —
 current UI is static dark-console CSS only), Phase 10 final adversarial audit.**
+
+---
+
+## Phase 7 (GSAP motion) — actually complete, 2026-07-23
+
+`app/static/js/animations.js` was written (page-load reveal, verdict-score count-up,
+ScrollTrigger-based panel/finding reveals, findings-toggle height animation, button press
+feedback) but never actually ran — see the bug below. It runs correctly now.
+
+### One real bug: every animation was a silent no-op since the file was first written
+
+`animations.js` registered all of its setup functions inside
+`gsap.matchMedia().add({conditionName: mediaQuery}, callback)` — GSAP's "conditional
+matchMedia" API, intended to gate everything on `prefers-reduced-motion`. In the vendored
+`gsap.min.js` (3.12.5) this app ships, that specific **object-conditions** call form never
+invoked its callback — confirmed directly: `mm.add("(min-width: 1px)", cb)` fires
+immediately, `mm.add({name: query}, cb)` never fires, not even asynchronously, with no
+console error anywhere. Since every animation setup function was called from inside that
+callback, the entire motion layer — including the verdict-score counter — had never run a
+single time.
+
+Found by systematically ruling out five wrong hypotheses first (browser caching, tab-focus/
+`requestAnimationFrame` throttling, a stale CSRF token from a prior request, script load
+order, a JS parse error) before instrumenting the script with plain `window` globals (console
+logs were unreliable — the extension's console listener attaches too late in the page
+lifecycle to catch synchronous logs fired at parse time) and finding the actual dead branch.
+
+**Fixed** by reading `window.matchMedia("(prefers-reduced-motion: reduce)").matches` directly
+instead of going through `gsap.matchMedia()`'s object-conditions form — this app does full
+page reloads on every navigation, not client-side updates, so the dynamic
+requery-on-media-change behaviour that feature exists for was never actually needed here.
+
+Two defensive additions alongside the fix, both because GSAP's ticker is
+`requestAnimationFrame`-driven and browsers freeze `rAF` in a backgrounded tab:
+- A `visibilitychange` listener force-completes any in-flight tween the instant a tab
+  backgrounds, so nothing can be left stuck mid-animation if focus moves away before a tween
+  finishes.
+- Content that would start hidden for a GSAP entrance skips straight to its final state if the
+  tab is already hidden at load time, since it would otherwise never get a paintable frame to
+  animate on and stay invisible indefinitely.
+
+Also took the opportunity to make the motion more clearly visible — larger travel distance,
+`power3.out` easing, and a subtle blur-to-focus on the hero heading, verdict card, and every
+scroll-triggered panel — while staying within the dark SOC-console tone `PROJECT_PLAN.md` §7
+specifies (no bounce/overshoot spam).
+
+**253 tests passing** (four more than the 249 recorded above — added during the Phase 8
+coverage pass; see the coverage section above for what they cover).
+
+---
+
+## Repository split and GitHub push — 2026-07-23
+
+This project was developed inside a parent working directory (`F:\EBRYX\email analysis\`)
+that also contains an unrelated real-customer case study (`main.tex`, a whitepaper study
+guide, `Report.pdf`) with real customer headers, real employee addresses and a TLP:AMBER
+marking — see ADR-01. That parent directory had an initialised-but-empty git repository at
+its root; `email-header-analyzer/` was a plain subfolder inside it, not its own repository,
+which meant a push from that state would have published the personal case-study material
+alongside this app.
+
+Fixed by initialising a fresh, separate git repository scoped to `email-header-analyzer/`
+only. Verified with `git add -A --dry-run` before the first commit that no `.env`, `venv/`,
+or `samples/private/` content would be staged. First commit: 111 files, 16,428 insertions.
+Pushed to `https://github.com/MuhammadIsmail009/email-header-analyzer` (public).
