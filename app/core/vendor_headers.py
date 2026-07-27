@@ -54,10 +54,10 @@ _CAT_MEANINGS = {
     "MALW": "Malware",
     "BULK": "Bulk mail",
     "SPOOF": "Spoofing detected by the filter",
-    "IMT": "Impersonation — protected user",
-    "IMTD": "Impersonation — protected domain",
-    "GIMP": "Impersonation — mailbox intelligence",
-    "UIMP": "Impersonation — unauthenticated sender",
+    "IMT": "Impersonation: protected user",
+    "IMTD": "Impersonation: protected domain",
+    "GIMP": "Impersonation: mailbox intelligence",
+    "UIMP": "Impersonation: unauthenticated sender",
     "AMP": "Anti-malware protection",
     "SAP": "Suspicious mailbox activity",
     "OSPM": "Outbound spam",
@@ -126,7 +126,7 @@ def decode_forefront_antispam_report(raw: str) -> VendorFilterReport:
     if "CTRY" in tags:
         notes.append(
             "CTRY (connecting country) is present but deliberately not decoded into "
-            "a risk signal — geographic origin is not used as evidence in this tool."
+            "a risk signal: geographic origin is not used as evidence in this tool."
         )
 
     return VendorFilterReport(

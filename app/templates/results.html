@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Analysis Results — Email Header Analyzer{% endblock %}
+{% block title %}Analysis Results: Email Header Analyzer{% endblock %}
 {% block content %}
 
 {% set risk = report.risk %}
@@ -30,7 +30,7 @@
   <ol class="evidence-citations">
     {% for citation in risk.headline_citations %}
     {% set title, _, quote = citation.partition(": ") %}
-    <li><strong>{{ title }}</strong> — {{ quote }}</li>
+    <li><strong>{{ title }}:</strong> {{ quote }}</li>
     {% endfor %}
   </ol>
   {% else %}
@@ -118,7 +118,7 @@
     <li>SPF alignment: <strong>{{ auth.spf_alignment.value }}</strong></li>
     <li>DKIM alignment: <strong>{{ auth.dkim_alignment.value }}</strong></li>
     <li>DMARC policy: <strong>{{ auth.dmarc_policy or "not published / unknown" }}</strong></li>
-    <li>ARC present: <strong>{{ "yes" if auth.arc_present else "no" }}</strong>{% if auth.arc_chain_status %} — {{ auth.arc_chain_status }}{% endif %}</li>
+    <li>ARC present: <strong>{{ "yes" if auth.arc_present else "no" }}</strong>{% if auth.arc_chain_status %}, {{ auth.arc_chain_status }}{% endif %}</li>
   </ul>
   {% if auth.warnings %}
   <ul class="auth-warnings">
@@ -131,7 +131,7 @@
 <section class="panel">
   <h2>Vendor filter reports</h2>
   {% for vr in report.vendor_reports %}
-  <h3>{{ vr.vendor }} — {{ vr.source_header }}</h3>
+  <h3>{{ vr.vendor }}: {{ vr.source_header }}</h3>
   <table class="vendor-table">
     <thead><tr><th>Field</th><th>Value</th><th>Meaning</th></tr></thead>
     <tbody>
@@ -147,7 +147,7 @@
 
 <section class="panel" data-animate="timeline">
   <h2>Mail route</h2>
-  <p class="muted">Oldest hop first (reversed from stored header order — MTAs prepend, so the raw header stores newest first).</p>
+  <p class="muted">Oldest hop first (reversed from stored header order: MTAs prepend, so the raw header stores newest first).</p>
   <p>{{ route.trust_boundary_explanation }}</p>
   {% if route.total_transit_seconds is not none %}
   <p>Total transit (positive hops only): {{ "%.1f"|format(route.total_transit_seconds) }}s</p>
@@ -170,7 +170,7 @@
       </div>
     </li>
     {% if route.first_trusted_hop_index is not none and hop.index_in_header == route.first_trusted_hop_index %}
-    <li class="boundary-marker">— trust boundary: everything above is attacker-controllable —</li>
+    <li class="boundary-marker">trust boundary: everything above is attacker-controllable</li>
     {% endif %}
     {% endfor %}
   </ol>

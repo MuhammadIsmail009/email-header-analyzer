@@ -191,7 +191,7 @@ rules:
       visible From domain. The message genuinely originated from infrastructure
       authorised by that domain.
     legitimate: >-
-      Not applicable — this is a risk-reducing observation. Note it still does not make
+      Not applicable, this is a risk-reducing observation. Note it still does not make
       the message safe: a compromised but genuine mailbox passes all three.
     action: Continue to assess content and context; authentication is not intent.
 
@@ -221,7 +221,7 @@ rules:
       The envelope sender and the displayed sender belong to different organisations,
       so bounces return somewhere other than the apparent author.
     legitimate: >-
-      Normal for any mail sent through a service provider — bounce handling belongs to
+      Normal for any mail sent through a service provider: bounce handling belongs to
       the platform. On its own this means almost nothing.
     action: Consider only in combination with other identity inconsistencies.
 
@@ -273,7 +273,7 @@ rules:
     strength: strong
     weight: 30
     why: >-
-      The domain is a near-match for a well-known organisation — a character
+      The domain is a near-match for a well-known organisation: a character
       substitution, a homoglyph, or the brand embedded in an unrelated domain. Such
       domains are registered specifically to be misread at a glance.
     legitimate: >-
@@ -305,7 +305,7 @@ rules:
     why: >-
       A message appears to have arrived at one hop before leaving the previous one.
     legitimate: >-
-      Almost always clock skew between mail servers — NTP drift or a misconfigured
+      Almost always clock skew between mail servers, from NTP drift or a misconfigured
       timezone. Very rarely an indicator by itself.
     action: Note it; do not escalate on this alone.
 
@@ -319,7 +319,7 @@ rules:
       is a sender-supplied claim. An attacker can fabricate as many plausible hops as
       they like, and none of them can be corroborated.
     legitimate: >-
-      Usually a configuration gap rather than an attack — TRUSTED_RECEIVER_DOMAINS is
+      Usually a configuration gap rather than an attack: TRUSTED_RECEIVER_DOMAINS is
       unset or does not match this mail flow.
     action: Configure TRUSTED_RECEIVER_DOMAINS with your own mail infrastructure.
 
@@ -423,7 +423,7 @@ rules:
     why: >-
       The address has a long history and no reported malicious activity.
     legitimate: >-
-      Not applicable — risk-reducing. Note that a long-established address is exactly
+      Not applicable, risk-reducing. Note that a long-established address is exactly
       what an attacker obtains by compromising a real mailbox.
     action: Reduces suspicion; does not remove the need to verify unusual requests.
 
@@ -445,6 +445,6 @@ rules:
       platforms all produce authenticated mail with a divergent reply path.
     action: >-
       Verify any payment, banking-detail or credential request through a channel that
-      is not this email thread — a known telephone number, not one supplied in the
+      is not this email thread: a known telephone number, not one supplied in the
       message. Header evidence cannot confirm business context, so this is a prompt to
       check, not a conclusion.

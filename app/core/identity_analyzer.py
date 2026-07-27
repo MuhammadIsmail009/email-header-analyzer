@@ -63,7 +63,7 @@ def build_identity(header_name: str, raw_value: str) -> Identity | None:
             return Identity(
                 source_header=header_name,
                 raw=raw_value,
-                warnings=("empty Return-Path — a null return path, valid for bounces",),
+                warnings=("empty Return-Path: a null return path, valid for bounces",),
             )
         domain = address_domain(stripped)
         return Identity(

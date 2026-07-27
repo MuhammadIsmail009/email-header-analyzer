@@ -177,7 +177,7 @@ VERDICT_LABELS: dict[Verdict, str] = {
     Verdict.SUSPICIOUS: "Suspicious",
     Verdict.LIKELY_PHISHING: "Likely Phishing",
     Verdict.POSSIBLE_BEC: "Possible BEC / Impersonation",
-    Verdict.INCONCLUSIVE: "Inconclusive — insufficient evidence",
+    Verdict.INCONCLUSIVE: "Inconclusive: insufficient evidence",
 }
 
 

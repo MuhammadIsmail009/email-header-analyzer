@@ -42,7 +42,7 @@ _EXPLANATION = {
     ),
     "softfail": (
         "The connecting IP is not authorised, but the record ends in '~all' "
-        "(soft fail) — the domain owner discourages rather than forbids it."
+        "(soft fail), meaning the domain owner discourages it rather than forbidding it."
     ),
     "neutral": (
         "The record explicitly takes no position on this IP ('?all' or '?' qualifier). "

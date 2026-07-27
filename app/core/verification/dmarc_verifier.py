@@ -90,8 +90,8 @@ def verify_dmarc(
                 method=AuthMethod.DMARC,
                 outcome=VerificationOutcome.NOT_POSSIBLE,
                 detail=(
-                    "No usable From: domain, so DMARC — which is defined entirely "
-                    "against the visible From domain — cannot be evaluated."
+                    "No usable From: domain, so DMARC (which is defined entirely "
+                    "against the visible From domain) cannot be evaluated."
                 ),
             ),
             AlignmentResult.UNKNOWN,

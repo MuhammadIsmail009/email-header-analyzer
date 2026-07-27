@@ -294,7 +294,7 @@ def lookalike_of(
         target_skeleton = skeleton(target_org)
 
         if candidate_skeleton == target_skeleton:
-            return target_org, "homoglyph substitution — visually identical"
+            return target_org, "homoglyph substitution, visually identical"
 
         # Compare registrable labels only, so example.com vs example.net is not
         # reported as a one-character typosquat of the brand.

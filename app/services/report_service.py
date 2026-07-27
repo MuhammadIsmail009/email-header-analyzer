@@ -159,7 +159,7 @@ def to_json_dict(report: AnalysisReport) -> dict:
 def to_markdown(report: AnalysisReport) -> str:
     risk = report.risk
     lines: list[str] = []
-    lines.append(f"# Email Header Analysis — Report {report.report_id}")
+    lines.append(f"# Email Header Analysis: Report {report.report_id}")
     lines.append("")
     lines.append(f"Generated: {report.created_at.isoformat()}")
     lines.append(
@@ -187,7 +187,7 @@ def to_markdown(report: AnalysisReport) -> str:
             lines.append("## Findings")
             lines.append("")
             for f in risk.findings:
-                lines.append(f"### {f.rule_id} — {f.title} ({f.evidence_strength.value})")
+                lines.append(f"### {f.rule_id}: {f.title} ({f.evidence_strength.value})")
                 lines.append(f"- **Evidence:** {f.evidence}")
                 lines.append(f"- **Why it matters:** {f.why_it_matters}")
                 lines.append(f"- **Possible legitimate explanation:** {f.legitimate_explanation}")
@@ -241,7 +241,7 @@ def to_markdown(report: AnalysisReport) -> str:
             fixture_note = " *(demo fixture)*" if r.is_demo_fixture else ""
             lines.append(
                 f"- **{r.provider}** on `{defang(r.ioc, r.ioc_type)}`: "
-                f"{r.status.value}{fixture_note} — {r.summary}"
+                f"{r.status.value}{fixture_note}: {r.summary}"
             )
         lines.append("")
 

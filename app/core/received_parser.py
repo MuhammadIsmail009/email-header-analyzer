@@ -185,7 +185,7 @@ def parse_received_line(raw: str, index: int) -> ReceivedHop:
     elif "from" not in clauses:
         # Not an error. This is what locally-injected mail looks like.
         warnings.append(
-            "hop has no 'from' clause — consistent with local injection by a "
+            "hop has no 'from' clause, consistent with local injection by a "
             "submission agent or gateway rather than an SMTP connection"
         )
 

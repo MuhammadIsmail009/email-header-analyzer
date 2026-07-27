@@ -344,7 +344,7 @@ def lookalike_domain(ctx: RiskContext) -> str | None:
     if not ctx.lookalikes:
         return None
     hit = ctx.lookalikes[0]
-    return f"{hit.domain} resembles {hit.matched} — {hit.technique}."
+    return f"{hit.domain} resembles {hit.matched}: {hit.technique}."
 
 
 @rule("IMP-002")
@@ -484,7 +484,7 @@ def intel_unavailable(ctx: RiskContext) -> str | None:
         f"{status}: {', '.join(sorted(providers))}"
         for status, providers in sorted(by_status.items())
     )
-    return f"{len(unchecked)} lookup(s) returned no data — {summary}."
+    return f"{len(unchecked)} lookup(s) returned no data: {summary}."
 
 
 @rule("REP-001")

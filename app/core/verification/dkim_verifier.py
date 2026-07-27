@@ -73,9 +73,9 @@ def verify_dkim(
             outcome=VerificationOutcome.NOT_POSSIBLE,
             detail=(
                 "The message carries no DKIM-Signature header, so there is nothing to "
-                "verify. This is not an authentication failure — DMARC needs only one "
-                "of SPF or DKIM to pass with alignment — but it does mean the message "
-                "has no cryptographic integrity protection."
+                "verify. This is not an authentication failure, since DMARC needs only "
+                "one of SPF or DKIM to pass with alignment, but it does mean the "
+                "message has no cryptographic integrity protection."
             ),
         )
 
@@ -113,7 +113,7 @@ def verify_dkim(
         sig.pop(b"bh", None)
 
     scope = (
-        "signed headers only — body hash not checked, because only headers were "
+        "signed headers only, body hash not checked, because only headers were "
         "supplied"
         if headers_only
         else "signed headers and body hash"
@@ -144,7 +144,7 @@ def verify_dkim(
         )
         detail += (
             "This proves the signed headers are authentic and unmodified. It does NOT "
-            "confirm body integrity — that requires the message body, which was not "
+            "confirm body integrity: that requires the message body, which was not "
             "supplied. Upload the full .eml to verify the body hash."
             if headers_only
             else "Both the signed headers and the body hash verify."
@@ -166,7 +166,7 @@ def verify_dkim(
             "modified after signing, or the public key at "
             f"{selector}._domainkey.{signing_domain} could not be retrieved or does "
             "not match. Note that ordinary mailing lists and forwarders modify headers "
-            "and break DKIM legitimately — check for ARC headers before concluding "
+            "and break DKIM legitimately, so check for ARC headers before concluding "
             "tampering."
         ),
         checked_domain=signing_domain or None,

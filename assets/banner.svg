@@ -1,0 +1,54 @@
+<svg width="900" height="230" viewBox="0 0 900 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Email Header Analyzer terminal banner">
+  <title>Email Header Analyzer</title>
+  <defs>
+    <clipPath id="frame-clip">
+      <rect x="1" y="1" width="898" height="228" rx="10"/>
+    </clipPath>
+    <linearGradient id="scan-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a8f5c" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#5fd68a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#3a8f5c" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="898" height="228" rx="10" fill="#0b0d10" stroke="#262b33"/>
+
+  <g clip-path="url(#frame-clip)">
+    <rect x="0" y="34" width="900" height="26" fill="url(#scan-fade)">
+      <animate attributeName="y" values="34;196;34" dur="6s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <rect x="1" y="1" width="898" height="34" rx="10" fill="#12151a"/>
+  <rect x="1" y="25" width="898" height="10" fill="#12151a"/>
+  <circle cx="22" cy="18" r="5" fill="#b8383f"/>
+  <circle cx="40" cy="18" r="5" fill="#b8923a"/>
+  <circle cx="58" cy="18" r="5" fill="#3a8f5c"/>
+  <text x="450" y="22" font-family="Consolas, 'SF Mono', monospace" font-size="12" fill="#8b95a5" text-anchor="middle">analysis session</text>
+
+  <g font-family="Consolas, 'SF Mono', monospace" font-size="16">
+    <text x="26" y="72" fill="#3a8f5c">$</text>
+    <text x="42" y="72" fill="#e7ebf0">eha analyze --header suspicious.eml</text>
+
+    <text x="26" y="102" fill="#8b95a5">SPF</text>
+    <text x="100" y="102" fill="#b8383f">verified fail</text>
+    <text x="260" y="102" fill="#8b95a5">record ends '-all', connecting IP not authorised</text>
+
+    <text x="26" y="128" fill="#8b95a5">DKIM</text>
+    <text x="100" y="128" fill="#3a8f5c">signature valid</text>
+    <text x="260" y="128" fill="#8b95a5">headers only, body hash not checked</text>
+
+    <text x="26" y="154" fill="#8b95a5">DMARC</text>
+    <text x="100" y="154" fill="#b8383f">verified fail</text>
+    <text x="260" y="154" fill="#8b95a5">policy=reject, alignment fail</text>
+
+    <text x="26" y="188" fill="#e7ebf0" font-weight="bold">verdict</text>
+    <text x="100" y="188" fill="#b8383f" font-weight="bold">LIKELY PHISHING</text>
+    <text x="270" y="188" fill="#8b95a5">score 62/100</text>
+
+    <text x="26" y="214" fill="#3a8f5c">$</text>
+    <rect x="42" y="200" width="10" height="17" fill="#5fd68a">
+      <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="1.05s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

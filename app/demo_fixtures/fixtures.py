@@ -151,7 +151,7 @@ _register(
         "emailrep",
         "accounts@partner-vendor-payments.example",
         IOCType.EMAIL,
-        "Reputation: none on file — domain has no established history.",
+        "Reputation: none on file, domain has no established history.",
         malicious=False,
         reputation="none",
         suspicious=False,
